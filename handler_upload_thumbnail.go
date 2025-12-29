@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"mime"
@@ -61,9 +63,8 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	assetPath := getAssetPath(videoID, mediaType)
+	assetPath := getAssetPath(mediaType)
 	assetDiskPath := cfg.getAssetDiskPath(assetPath)
-
 	dst, err := os.Create(assetDiskPath)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Unable to create file on server", err)
@@ -84,6 +85,12 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	if video.UserID != userID {
 		respondWithError(w, http.StatusUnauthorized, "User does not have permission to upload a thumbnail", nil)
 		return
+	}
+
+	previousThumbnailFileName := getAssetPathByUrl(video.ThumbnailURL)
+	if previousThumbnailFileName != "" {
+		previousThumbnailPath := cfg.getAssetDiskPath(previousThumbnailFileName)
+		os.Remove(previousThumbnailPath)
 	}
 
 	thumbnailUrl := cfg.getAssetURL(assetPath)
