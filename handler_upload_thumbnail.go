@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 
@@ -35,16 +36,28 @@ func (cfg *apiConfig) handlerUploadThumbnail(w http.ResponseWriter, r *http.Requ
 	const maxMemory = 10 << 20
 	r.ParseMultipartForm(maxMemory)
 
-	file, header, err := r.FormFile("thumbnail")
+	file, meta, err := r.FormFile("thumbnail")
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Couldn't get a thumbnail", err)
 		return
 	}
 	defer file.Close()
 
-	mediaType := header.Header.Get("Content-Type")
+	mediaType := meta.Header.Get("Content-Type")
 	if mediaType == "" {
 		respondWithError(w, http.StatusBadRequest, "Missing Content-Type for thumbnail", nil)
+		return
+	}
+
+	mediaType, _, err = mime.ParseMediaType(mediaType)
+
+	if mediaType == "" {
+		respondWithError(w, http.StatusInternalServerError, "Could not parse media mime type", err)
+		return
+	}
+
+	if mediaType != "image/png" && mediaType != "image/jpg" {
+		respondWithError(w, http.StatusBadRequest, "Invalid media type for tthumbnail, needs to be png or jpg", nil)
 		return
 	}
 
