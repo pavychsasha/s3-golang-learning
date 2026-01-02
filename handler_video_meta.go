@@ -72,7 +72,7 @@ func (cfg *apiConfig) handlerVideoMetaDelete(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	err = cfg.db.DeleteVideo(videoID)
+	err = cfg.deleteVideo(video)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't delete video", err)
 		return
@@ -95,6 +95,15 @@ func (cfg *apiConfig) handlerVideoGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if video.VideoURL != nil {
+		presignedURL, err := cfg.dbToSignedVideo(video)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Could not get a presigned video", err)
+			return
+		}
+		video.VideoURL = &presignedURL
+	}
+
 	respondWithJSON(w, http.StatusOK, video)
 }
 
@@ -114,6 +123,17 @@ func (cfg *apiConfig) handlerVideosRetrieve(w http.ResponseWriter, r *http.Reque
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve videos", err)
 		return
+	}
+
+	for i, video := range videos {
+		if video.VideoURL != nil {
+			presignedURL, err := cfg.dbToSignedVideo(video)
+			if err != nil {
+				respondWithError(w, http.StatusInternalServerError, "Could not get a presigned video", err)
+				return
+			}
+			videos[i].VideoURL = &presignedURL
+		}
 	}
 
 	respondWithJSON(w, http.StatusOK, videos)

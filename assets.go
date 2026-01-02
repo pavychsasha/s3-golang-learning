@@ -26,8 +26,9 @@ func getAssetPath(mediaType string) string {
 	}
 
 	assetId := base64.RawURLEncoding.EncodeToString(key)
+	assetId = strings.ReplaceAll(assetId, ".", "_")
 	ext := mediaTypeToExt(mediaType)
-	return fmt.Sprintf("%s.%s", assetId, ext)
+	return fmt.Sprintf("%s%s", assetId, ext)
 }
 
 func (cfg apiConfig) getAssetDiskPath(assetPath string) string {
